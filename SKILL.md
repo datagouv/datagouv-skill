@@ -83,17 +83,19 @@ Three APIs: **Main** (catalog), **Metrics** (usage), **Tabular** (CSV rows). Pre
 | GET/POST/DELETE | `/reuses/{id}/followers/` |
 | GET | `/reuses/recent.atom` |
 
-### Dataservices
+### Dataservices (external APIs)
 | Method | Path |
 |--------|------|
-| GET/POST | `/dataservices/` |
-| GET/PATCH/DELETE | `/dataservices/{id}/` |
+| GET/POST | `/dataservices/` — GET: q, page, page_size, organization, owner, topic, tag, access_type, featured, dataset, sort |
+| GET/PATCH/DELETE | `/dataservices/{id}/` — GET returns `base_api_url`, `machine_documentation_url` (OpenAPI/Swagger spec), title, description, organization, license, etc. |
 | POST | `/dataservices/{id}/datasets/` — body: [{id}] |
 | DELETE | `/dataservices/{id}/datasets/{dataset}/` |
 | POST/DELETE | `/dataservices/{id}/featured/` |
 | GET | `/dataservices/{id}/rdf`, `rdf.{_format}` |
 | GET/POST/DELETE | `/dataservices/{id}/followers/` |
 | GET | `/dataservices/recent.atom` |
+
+**To use a dataservice:** (1) Search `/dataservices/?q=term` to find it. (2) GET `/dataservices/{id}/` to get `machine_documentation_url` and `base_api_url`. (3) Fetch `machine_documentation_url` to get OpenAPI spec with endpoints/params. (4) Make calls to `base_api_url` per spec.
 
 ### Contacts, Harvest, Discussions, Notifications
 | Method | Path |
