@@ -57,7 +57,7 @@ Copy `SKILL.md` into a folder your client treats as a skill (e.g. `datagouv-apis
 ## 🗂️ Repository Structure
 
 ```
-datagouv_skills/
+datagouv_skill/
 ├── SKILL.md          # Consolidated skill (Main + Metrics + Tabular APIs)
 ├── README.md
 └── LICENSE
