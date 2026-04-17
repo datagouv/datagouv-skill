@@ -1,11 +1,95 @@
 ---
 name: datagouv-apis
-description: Interact with data.gouv.fr APIs — Main API (datasets, orgs, users, resources, reuses, discussions), Metrics API (usage/stats by model), Tabular API (query CSV rows by resource ID). Use when working with data.gouv.fr data, catalog, or platform features.
+description: >-
+  data.gouv.fr — search catalog, dataset metadata, organizations, download files,
+  query tabular CSV rows (Tabular API), usage metrics (Metrics API), discover external
+  APIs (dataservices on data.gouv.fr; same APIs historically listed on api.gouv.fr + OpenAPI).
+  Use for consumption, analysis, or MCP-assisted exploration.
+  Optional producer coaching (documentation/quality before publication on the platform).
 ---
 
 # data.gouv.fr APIs — Consolidated Reference
 
-Three APIs: **Main** (catalog), **Metrics** (usage), **Tabular** (CSV rows). Prefer the data.gouv.fr MCP server tools when configured; endpoints below apply with or without MCP.
+Three HTTP APIs (**Main**, **Metrics**, **Tabular**) plus **dataservices** (external HTTP APIs described on the platform; they used to be referenced on **api.gouv.fr** and are now **dataservices** on data.gouv.fr). This file is consumption-first: read paths and discovery; writes only when the user explicitly wants them and an API key is available.
+
+---
+
+## How to use this skill
+
+- **MCP first:** If the client exposes **data.gouv.fr MCP** tools, use them for conversational catalog exploration; they orchestrate the same platform capabilities with typed tool calls. Endpoint: `https://mcp.data.gouv.fr/mcp`. Repos: [datagouv-mcp](https://github.com/datagouv/datagouv-mcp), [datagouv-skill](https://github.com/datagouv/datagouv-skill). Tool names vary by server version—follow the host’s tool list and fall back to the HTTP endpoints in this document when MCP is missing or insufficient.
+- **HTTP otherwise:** Use the Main, Metrics, and Tabular base URLs below. Prefer **GET** responses over assumptions: do not invent dataset or resource IDs; cite **slugs**, **UUIDs**, and **URLs** returned by the API.
+- **Automation vs chat:** MCP suits interactive exploration; the **Main API** suits reproducible scripts and the full route surface.
+- **Writes (atypical):** Never log or echo `X-API-KEY`. Use POST/PUT/PATCH/DELETE only with clear user intent **and** a configured key. On **401/403**, distinguish missing key from insufficient permissions; on **404**, re-check id vs slug and use search. Do not expand into full producer pipelines here.
+
+---
+
+## Choosing an API (intent → surface)
+
+| User goal | Use |
+|-----------|-----|
+| Search or read catalog metadata, resources, orgs, reuses, discussions | **Main API** — e.g. `GET /datasets/`, `GET /datasets/{id}/`, resources under the dataset |
+| Filter/sort/paginate **rows** of a CSV resource hosted for Tabular | **Tabular API** — after steps in [§3 Tabular API](#3-tabular-api) |
+| Platform **usage / statistics** (models such as `dataset`, `organization`, `site`) | **Metrics API** — see Swagger for `{model}` and column filters |
+| Call an **external** API (legacy catalog: api.gouv.fr; now **dataservices** on data.gouv.fr) | **Dataservices** — search `GET /dataservices/`, then `machine_documentation_url` + `base_api_url` (four steps in [§1 Main API](#1-main-api)) |
+
+---
+
+## Identifiers and catalog visibility
+
+- **Technical UUID vs slug:** Both work in many paths; **prefer the UUID** from API responses for stable automation.
+- **Resolve before Tabular:** Tabular `{rid}` is the resource **UUID** from `GET /datasets/{id}/` (or `.../resources/`). If you only have a slug, `GET` the dataset first and read `resources[].id`.
+- **Stable resource link:** `GET /datasets/r/{id}/` redirects to the latest resource for that id.
+- **Search is not “the whole web”:** `GET /datasets/` supports filters such as **`archived`**, **`deleted`**, **`private`**. Defaults may hide some records; set query params explicitly when the user needs a full picture and the key allows it.
+
+---
+
+## Pagination and rate limits
+
+- Lists return `data`, `page`, `page_size`, `total`, `next_page`, `previous_page`. Follow **`next_page`** until empty instead of guessing page counts.
+- Use a **reasonable `page_size`**; avoid hammering the service or downloading the entire catalog page by page without need.
+- Respect **`X-RateLimit-Limit`**, **`X-RateLimit-Remaining`**, **`X-RateLimit-Reset`**: slow down or backoff when remaining is low.
+
+---
+
+## Demo vs production
+
+- **Production:** `https://www.data.gouv.fr/api/1/` (and production Metrics / Tabular hosts below).
+- **Demo:** `https://demo.data.gouv.fr/api/1/` — for tests only; do not present demo results as production facts unless the user asked for demo.
+
+---
+
+## Glossary
+
+- **Dataset:** A catalog entry (metadata, licence, frequency, tags) grouping **resources**.
+- **Resource:** A file or API link attached to a dataset (CSV, JSON, GeoJSON, etc.); each has an id used by Tabular when the file is tabular-compatible on the platform.
+- **Organization / producer:** Publisher entity; datasets may belong to an organization.
+- **Reuse:** A project or article that references platform datasets or dataservices.
+- **Dataservice:** A documented external HTTP API (OpenAPI/Swagger often at `machine_documentation_url`) with a **`base_api_url`** for calls. Same class of APIs that were once referenced on **api.gouv.fr**; the catalog entry on the open data platform is now a **dataservice**.
+- **Slug:** Human-readable id in URLs; may change; UUID is safer for scripts.
+
+---
+
+## Producer coaching (documentation and publication quality)
+
+When the user asks how to **prepare, document, or legally qualify** data for publication on data.gouv.fr **without** using write APIs here, **ground** answers in the official guides (fetch pages if the client allows, otherwise give links): [Guide qualité](https://guides.data.gouv.fr/guides/guide-qualite.md), [Guide juridique](https://guides.data.gouv.fr/guides/guide-juridique.md). This skill is **not** legal advice; encourage human review for obligations and licensing.
+
+---
+
+## Intent routing (optional)
+
+```mermaid
+flowchart LR
+  subgraph discovery [Discovery]
+    A[CatalogMetadata]
+    B[RowQueries]
+    C[UsageStats]
+    D[ExternalAPI]
+  end
+  A --> MainAPI[MainAPI]
+  B --> TabularAPI[TabularAPI]
+  C --> MetricsAPI[MetricsAPI]
+  D --> Dataservices[DataservicesThenUpstream]
+```
 
 ---
 
@@ -35,7 +119,7 @@ Three APIs: **Main** (catalog), **Metrics** (usage), **Tabular** (CSV rows). Pre
 | GET/POST/... | `/datasets/community_resources/`, `.../{community}/`, `.../upload/` |
 | GET | `/datasets/badges/`, `frequencies/`, `licenses/`, `resource_types/`, `extensions/`, `schemas/` |
 | GET | `/datasets/suggest/`, `suggest/formats/`, `suggest/mime/` — q, size |
-| GET | `/datasets/r/{id}` — redirect to latest resource |
+| GET | `/datasets/r/{id}/` — redirect to latest resource |
 | GET | `/datasets/recent.atom` |
 
 ### Organizations
@@ -84,6 +168,9 @@ Three APIs: **Main** (catalog), **Metrics** (usage), **Tabular** (CSV rows). Pre
 | GET | `/reuses/recent.atom` |
 
 ### Dataservices (external APIs)
+
+External administrative or public HTTP APIs were historically listed on **api.gouv.fr**; they are now represented as **dataservices** on data.gouv.fr (`GET /dataservices/`, object fields below).
+
 | Method | Path |
 |--------|------|
 | GET/POST | `/dataservices/` — GET: q, page, page_size, organization, owner, topic, tag, access_type, featured, dataset, sort |
@@ -105,10 +192,10 @@ Three APIs: **Main** (catalog), **Metrics** (usage), **Tabular** (CSV rows). Pre
 | GET/PUT/DELETE | `/contacts/{id}/` |
 | GET/POST | `/harvest/sources/` |
 | GET/PUT/DELETE | `/harvest/source/{id}/` |
-| GET | `/harvest/source/{id}/jobs/`, `harvest/job/{ident}/` |
+| GET | `/harvest/source/{id}/jobs/`, `/harvest/job/{ident}/` |
 | POST | `/harvest/source/{id}/run/` |
 | POST/DELETE | `/harvest/source/{id}/schedule/` |
-| GET/POST | `/harvest/source/{id}/preview/`, `harvest/source/preview/` |
+| GET/POST | `/harvest/source/{id}/preview/`, `/harvest/source/preview/` |
 | POST | `/harvest/source/{id}/validate/` |
 | GET | `/harvest/backends/` |
 | GET/POST/PUT/DELETE | `/discussions/`, `discussions/{id}/` |
@@ -154,8 +241,8 @@ Three APIs: **Main** (catalog), **Metrics** (usage), **Tabular** (CSV rows). Pre
 
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/{model}/data/` | Paginated metrics (JSON). Params: page, page_size, column__sort, column__exact, column__contains, column__less, column__greater |
-| GET | `/api/{model}/data/csv/` | Same as CSV stream (no pagination) |
+| GET | `/api/{model}/data/` | Paginated metrics rows (JSON). Params: page, page_size, column__sort, column__exact, column__contains, column__less, column__greater |
+| GET | `/api/{model}/data/csv/` | Metrics **export** for `{model}` as CSV (same column filters as JSON where applicable; **not** the Tabular API resource CSV format) |
 | GET | `/health/` | Health check |
 
 `{model}` = table name (e.g. site, organization, dataset). See Swagger for models and columns.
@@ -167,6 +254,13 @@ Three APIs: **Main** (catalog), **Metrics** (usage), **Tabular** (CSV rows). Pre
 **Base URL:** `https://tabular-api.data.gouv.fr` | Swagger: https://tabular-api.data.gouv.fr/api/doc | Per-resource: `GET /api/resources/{rid}/swagger/`
 
 `{rid}` = resource UUID from main API (dataset's resources).
+
+**Tabular data workflow (use in order):**
+
+1. `GET /api/resources/{rid}/` — confirm the resource is exposed and get links.
+2. `GET /api/resources/{rid}/profile/` — column types, stats, indexes.
+3. `GET /api/resources/{rid}/swagger/` — allowed query params and operators per column (read before complex filters).
+4. `GET /api/resources/{rid}/data/` — `page` and `page_size` (max **50**). For aggregations, check `/api/aggregation-exceptions/` first (only listed resources/columns may support groupby/count/sum, etc.).
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -183,19 +277,48 @@ Three APIs: **Main** (catalog), **Metrics** (usage), **Tabular** (CSV rows). Pre
 
 ---
 
-## Quick Examples
+## Quick examples
 
 ```python
-# Main API — search datasets
-requests.get("https://www.data.gouv.fr/api/1/datasets/", params={"q": "transport", "page_size": 20}).json()
+import requests
 
-# Metrics API
-requests.get("https://metric-api.data.gouv.fr/api/dataset/data/", params={"page": 1}).json()
+BASE = "https://www.data.gouv.fr/api/1"
 
-# Tabular API — resource data
-requests.get(f"https://tabular-api.data.gouv.fr/api/resources/{resource_id}/data/", params={"page": 1, "page_size": 20}).json()
+# 1) Search catalog, then open first hit
+r = requests.get(f"{BASE}/datasets/", params={"q": "transport", "page_size": 5}).json()
+first = r["data"][0]
+ds = requests.get(f"{BASE}/datasets/{first['id']}/").json()
+
+# 2) Pick a CSV resource UUID, then Tabular profile + data (use any resource id exposed by Tabular)
+csvs = [res for res in ds["resources"] if res.get("format", "").lower() == "csv"]
+rid = csvs[0]["id"] if csvs else ds["resources"][0]["id"]
+requests.get(f"https://tabular-api.data.gouv.fr/api/resources/{rid}/profile/").json()
+requests.get(
+    f"https://tabular-api.data.gouv.fr/api/resources/{rid}/data/",
+    params={"page": 1, "page_size": 20},
+).json()
+
+# 3) Direct file download (when you need the raw file, not row filtering)
+url = next(res["url"] for res in ds["resources"] if res["id"] == rid)
+requests.get(url, stream=True)
 ```
 
-**Python client:** https://github.com/etalab/datagouv-client-python  
-**Main API Swagger:** https://www.data.gouv.fr/api/1/swagger.json  
-**Guides:** https://guides.data.gouv.fr/guide-data.gouv.fr/readme-1/reference/
+```python
+# Metrics API — paginated dataset metrics (models/columns in Swagger)
+requests.get(
+    "https://metric-api.data.gouv.fr/api/dataset/data/",
+    params={"page": 1, "page_size": 20},
+).json()
+```
+
+**Python client:** https://github.com/etalab/datagouv-client-python
+
+---
+
+## References and freshness
+
+- **Main API Swagger (authoritative paths):** https://www.data.gouv.fr/api/1/swagger.json  
+- **Metrics / Tabular:** use their Swaggers linked above. If a path or parameter disagrees with this file, **trust the live Swagger**.
+- **API guide (human, technical):** [Prise en main](https://guides.data.gouv.fr/api-de-data.gouv.fr/prise-en-main.md), [Référence API](https://guides.data.gouv.fr/api-de-data.gouv.fr/reference.md), [Télécharger le catalogue](https://guides.data.gouv.fr/api-de-data.gouv.fr/telecharger-le-catalogue-de-donnees-de-data.gouv.fr.md), [SPARQL](https://guides.data.gouv.fr/api-de-data.gouv.fr/acceder-au-catalogue-via-sparql.md).
+
+For sharing with humans, dataset pages on `www.data.gouv.fr` use slugs from API fields; **metadata and ids** should still come from **GET** responses.
