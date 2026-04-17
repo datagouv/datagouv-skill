@@ -16,7 +16,7 @@ Three HTTP APIs (**Main**, **Metrics**, **Tabular**) plus **dataservices** (exte
 
 ## How to use this skill
 
-- **MCP first:** If the client exposes **data.gouv.fr MCP** tools, use them for conversational catalog exploration; they orchestrate the same platform capabilities with typed tool calls. Endpoint: `https://mcp.data.gouv.fr/mcp`. Repos: [datagouv-mcp](https://github.com/datagouv/datagouv-mcp), [datagouv-skill](https://github.com/datagouv/datagouv-skill). Tool names vary by server version—follow the host’s tool list and fall back to the HTTP endpoints in this document when MCP is missing or insufficient.
+- **MCP first:** If the client exposes **data.gouv.fr MCP** tools, use them for conversational catalog exploration; they orchestrate the same platform capabilities with typed tool calls. For **dataservices** in particular, **`search_dataservices`** matches the intent of `GET /dataservices/`; after a hit, load the detail record (`machine_documentation_url`, `base_api_url`, etc.) via MCP or via `GET /dataservices/{id}/` before calling the upstream API. Endpoint: `https://mcp.data.gouv.fr/mcp`. Repos: [datagouv-mcp](https://github.com/datagouv/datagouv-mcp), [datagouv-skill](https://github.com/datagouv/datagouv-skill). Tool names vary by server version—follow the host’s tool list and fall back to the HTTP endpoints in this document when MCP is missing or insufficient (dataservices: `GET https://www.data.gouv.fr/api/1/dataservices/` with `q`, filters, and `next_page`, then `GET /dataservices/{id}/`).
 - **HTTP otherwise:** Use the Main, Metrics, and Tabular base URLs below. Prefer **GET** responses over assumptions: do not invent dataset or resource IDs; cite **slugs**, **UUIDs**, and **URLs** returned by the API.
 - **Automation vs chat:** MCP suits interactive exploration; the **Main API** suits reproducible scripts and the full route surface.
 - **Writes (atypical):** Never log or echo `X-API-KEY`. Use POST/PUT/PATCH/DELETE only with clear user intent **and** a configured key. On **401/403**, distinguish missing key from insufficient permissions; on **404**, re-check id vs slug and use search. Do not expand into full producer pipelines here.
@@ -30,7 +30,7 @@ Three HTTP APIs (**Main**, **Metrics**, **Tabular**) plus **dataservices** (exte
 | Search or read catalog metadata, resources, orgs, reuses, discussions | **Main API** — e.g. `GET /datasets/`, `GET /datasets/{id}/`, resources under the dataset |
 | Filter/sort/paginate **rows** of a CSV resource hosted for Tabular | **Tabular API** — after steps in [§3 Tabular API](#3-tabular-api) |
 | Platform **usage / statistics** (models such as `dataset`, `organization`, `site`) | **Metrics API** — see Swagger for `{model}` and column filters |
-| Call an **external** API (legacy catalog: api.gouv.fr; now **dataservices** on data.gouv.fr) | **Dataservices** — search `GET /dataservices/`, then `machine_documentation_url` + `base_api_url` (four steps in [§1 Main API](#1-main-api)) |
+| Call an **external** API (legacy catalog: api.gouv.fr; now **dataservices** on data.gouv.fr) | **Dataservices** — MCP **`search_dataservices`** or `GET /dataservices/`, then `machine_documentation_url` + `base_api_url` (steps in [§1 Main API](#1-main-api)) |
 
 ---
 
@@ -182,7 +182,15 @@ External administrative or public HTTP APIs were historically listed on **api.go
 | GET/POST/DELETE | `/dataservices/{id}/followers/` |
 | GET | `/dataservices/recent.atom` |
 
-**To use a dataservice:** (1) Search `/dataservices/?q=term` to find it. (2) GET `/dataservices/{id}/` to get `machine_documentation_url` and `base_api_url`. (3) Fetch `machine_documentation_url` to get OpenAPI spec with endpoints/params. (4) Make calls to `base_api_url` per spec.
+**Access and auth:** Each object includes **`access_type`** (and related fields such as `access_type_reason`, `authorization_request_url`). Rules are **per dataservice**, not platform-wide: follow the web page (`self_web_url`), **`business_documentation_url`**, and the upstream OpenAPI for API keys, OAuth, DataPass, or other flows.
+
+**Rate limits:** **`rate_limiting`** and **`rate_limiting_url`** describe **producer** quotas on the external API. The Main API’s **`X-RateLimit-*`** headers apply only to **catalog** requests (`/dataservices/`, etc.), not to calls you make to `base_api_url`.
+
+**Bulk export (metadata):** `GET /site/dataservices.csv` returns a site-wide CSV of dataservice rows for spreadsheets or scripts (same catalog as the JSON list).
+
+**OpenAPI is authoritative:** Always fetch **`machine_documentation_url`** before calling the live API. Paths, parameters, and schemas come from that spec; if human text on the portal or this skill disagrees with the fetched OpenAPI, **trust the OpenAPI** (same principle as Metrics and Tabular Swaggers in [§References and freshness](#references-and-freshness)).
+
+**To use a dataservice:** (1) Find it: MCP **`search_dataservices`** or `GET /dataservices/?q=term` (follow **`next_page`** until done). (2) GET `/dataservices/{id}/` (or the MCP equivalent) for `machine_documentation_url` and `base_api_url`. (3) Fetch `machine_documentation_url` for the OpenAPI spec. (4) Call **`base_api_url`** per that spec.
 
 ### Contacts, Harvest, Discussions, Notifications
 | Method | Path |
