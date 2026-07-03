@@ -2,6 +2,8 @@
 
 Agent skill (SKILL.md) for interacting with data.gouv.fr and its three APIs: **Main** ([catalog](https://www.data.gouv.fr/api/1/swagger.json)), **Metrics** ([usage](https://metric-api.data.gouv.fr/api/doc)), **Tabular** ([CSV rows](https://tabular-api.data.gouv.fr/api/doc)). Compatible with any LLM/agent supporting SKILL.md (Claude Code, Cursor, ChatGPT, Codex CLI, Mistral Vibe, etc.).
 
+Also published in the DINUM [Skills État](https://github.com/etalab-ia/skills) collection alongside DSFR, RGAA, and other official skills.
+
 ## 🧩 Skill
 
 **`SKILL.md`** — Consolidated reference for all three APIs:
@@ -12,6 +14,16 @@ Agent skill (SKILL.md) for interacting with data.gouv.fr and its three APIs: **M
 ## ⚙️ Installation
 
 Clone this repo, then add the skill to your chatbot:
+
+### 🇫🇷 Skills État (bundled install)
+
+This skill is mirrored in [etalab-ia/skills](https://github.com/etalab-ia/skills) as `datagouv-apis`. Use this path to install it in one command with other state skills:
+
+```bash
+npx skills add etalab-ia/skills --skill datagouv-apis
+```
+
+**Contributions:** edit `SKILL.md` in this repository — changes are synced to etalab-ia/skills.
 
 ### 🤖 Claude Code
 
