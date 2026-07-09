@@ -1,6 +1,6 @@
 # data.gouv.fr skill
 
-Agent skill (SKILL.md) for interacting with data.gouv.fr and its three APIs: **Main** (catalog), **Metrics** (usage), **Tabular** (CSV rows). Compatible with any LLM/agent supporting SKILL.md (Claude Code, Cursor, ChatGPT, Codex CLI, Mistral Vibe, etc.).
+Agent skill (SKILL.md) for interacting with data.gouv.fr and its three APIs: **Main** ([catalog](https://www.data.gouv.fr/api/1/swagger.json)), **Metrics** ([usage](https://metric-api.data.gouv.fr/api/doc)), **Tabular** ([CSV rows](https://tabular-api.data.gouv.fr/api/doc)). Compatible with any LLM/agent supporting SKILL.md (Claude Code, Cursor, ChatGPT, Codex CLI, Mistral Vibe, etc.).
 
 ## 🧩 Skill
 
@@ -24,7 +24,7 @@ See [Claude Code docs: Skills](https://code.claude.com/docs/en/skills).
 
 See [Cursor docs: Skills](https://cursor.com/docs/context/skills).
 
-- **From GitHub (recommended):** Cursor Settings → Rules → Project Rules → Add Rule → *Remote Rule (Github)* → enter `https://github.com/datagouv/datagouv-skills`
+- **From GitHub (recommended):** Cursor Settings → Rules → Project Rules → Add Rule → *Remote Rule (Github)* → enter `https://github.com/datagouv/datagouv-skill`
 - **Copy locally:** `mkdir -p ~/.cursor/skills/datagouv-apis && cp SKILL.md ~/.cursor/skills/datagouv-apis/` (or project: `.cursor/skills/datagouv-apis/`)
 
 ### 🤖 Mistral (Vibe)
@@ -41,14 +41,15 @@ See [Mistral docs: Agents & Skills](https://docs.mistral.ai/mistral-vibe/agents-
 
 ### 🤖 Codex CLI (OpenAI)
 
-See [Codex docs: Skills](https://github.com/openai/codex/blob/main/docs/skills.md).
+See [Codex docs: Skills](https://developers.openai.com/codex/skills).
 
-- Install: `mkdir -p ~/.codex/skills/datagouv-apis && cp SKILL.md ~/.codex/skills/datagouv-apis/`
+- User-level install: `mkdir -p ~/.agents/skills/datagouv-apis && cp SKILL.md ~/.agents/skills/datagouv-apis/`
+- Project-level install: `mkdir -p .agents/skills/datagouv-apis && cp SKILL.md .agents/skills/datagouv-apis/`
 - Run: `codex --enable skills -m <model>`
 
 ### 🤖 ChatGPT (Code Interpreter)
 
-Paste the content of `SKILL.md` at the start of a chat, or point the model to this repo. Raw URL: `https://raw.githubusercontent.com/datagouv/datagouv-skills/main/SKILL.md`
+Paste the content of `SKILL.md` at the start of a chat, or point the model to this repo. Raw URL: `https://raw.githubusercontent.com/datagouv/datagouv-skill/main/SKILL.md`
 
 ### 🤖 Other chatbots
 
