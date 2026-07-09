@@ -36,8 +36,8 @@ See [Mistral docs: Agents & Skills](https://docs.mistral.ai/mistral-vibe/agents-
 
 ### 🤖 Claude (desktop app)
 
-- MacOS: `mkdir -p ~/Library/Application\ Support/Claude/skills/datagouv-apis && cp SKILL.md ~/Library/Application\ Support/Claude/skills/datagouv-apis/`
 - Linux: `mkdir -p ~/.config/claude/skills/datagouv-apis && cp SKILL.md ~/.config/claude/skills/datagouv-apis/`
+- macOS: `mkdir -p ~/Library/Application\ Support/Claude/skills/datagouv-apis && cp SKILL.md ~/Library/Application\ Support/Claude/skills/datagouv-apis/`
 
 ### 🤖 Codex CLI (OpenAI)
 
